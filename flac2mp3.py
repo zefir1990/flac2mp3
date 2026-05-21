@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import argparse
 import subprocess
 import shutil
 
@@ -34,28 +35,40 @@ def convert_flac_to_mp3(search_dir, output_tree_dir=None, output_flat_dir=None):
         relative_flac = os.path.relpath(flac_path, search_dir)
         relative_flac_no_ext = os.path.splitext(relative_flac)[0]
         
+        destinations = []
+        if output_tree_dir:
+            dest_tree = os.path.join(output_tree_dir, relative_flac_no_ext + ".mp3")
+            destinations.append(dest_tree)
         if output_flat_dir:
             basename_no_ext = os.path.splitext(os.path.basename(flac_path))[0]
-            mp3_path = os.path.join(output_flat_dir, basename_no_ext + ".mp3")
-            os.makedirs(output_flat_dir, exist_ok=True)
-            relative_mp3 = os.path.relpath(mp3_path, output_flat_dir)
-        elif output_tree_dir:
-            mp3_path = os.path.join(output_tree_dir, relative_flac_no_ext + ".mp3")
-            os.makedirs(os.path.dirname(mp3_path), exist_ok=True)
-            relative_mp3 = os.path.relpath(mp3_path, output_tree_dir)
-        else:
-            mp3_path = os.path.splitext(flac_path)[0] + ".mp3"
-            relative_mp3 = os.path.relpath(mp3_path, search_dir)
-            
-        print(f"[{index}/{len(flac_files)}] Converting: {relative_flac} -> {relative_mp3}")
+            dest_flat = os.path.join(output_flat_dir, basename_no_ext + ".mp3")
+            destinations.append(dest_flat)
+        if not destinations:
+            dest_inplace = os.path.splitext(flac_path)[0] + ".mp3"
+            destinations.append(dest_inplace)
 
+        display_paths = []
+        for dest in destinations:
+            if output_tree_dir and dest.startswith(output_tree_dir):
+                display_paths.append(os.path.relpath(dest, output_tree_dir))
+            elif output_flat_dir and dest.startswith(output_flat_dir):
+                display_paths.append(os.path.relpath(dest, output_flat_dir))
+            else:
+                display_paths.append(os.path.relpath(dest, search_dir))
+
+        print(f"[{index}/{len(flac_files)}] Converting: {relative_flac} -> {', '.join(display_paths)}")
+
+        for dest in destinations:
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+
+        primary_dest = destinations[0]
         command = [
             "ffmpeg",
             "-y",
             "-i", flac_path,
             "-c:a", "libmp3lame",
             "-q:a", "0",
-            mp3_path
+            primary_dest
         ]
 
         try:
@@ -66,6 +79,8 @@ def convert_flac_to_mp3(search_dir, output_tree_dir=None, output_flat_dir=None):
                 text=True,
                 check=True
             )
+            for extra_dest in destinations[1:]:
+                shutil.copy2(primary_dest, extra_dest)
         except subprocess.CalledProcessError as e:
             print(f"  [ERROR] Failed to convert: {relative_flac}", file=sys.stderr)
             print(f"  ffmpeg output:\n{e.stderr}", file=sys.stderr)
@@ -75,28 +90,37 @@ def convert_flac_to_mp3(search_dir, output_tree_dir=None, output_flat_dir=None):
     print("\nConversion process completed.")
 
 if __name__ == "__main__":
-    search_directory = "."
-    output_tree_dir = None
-    output_flat_dir = None
-
+    args_to_parse = []
     for arg in sys.argv[1:]:
-        if arg.startswith("output-directory-save-directories-tree="):
-            output_tree_dir = arg.split("output-directory-save-directories-tree=", 1)[1]
-        elif arg.startswith("--output-directory-save-directories-tree="):
-            output_tree_dir = arg.split("--output-directory-save-directories-tree=", 1)[1]
-        elif arg.startswith("output-directory-without-directories-tree="):
-            output_flat_dir = arg.split("output-directory-without-directories-tree=", 1)[1]
-        elif arg.startswith("--output-directory-without-directories-tree="):
-            output_flat_dir = arg.split("--output-directory-without-directories-tree=", 1)[1]
+        if arg.startswith("output-directory-") and not arg.startswith("--"):
+            args_to_parse.append("--" + arg)
         else:
-            search_directory = arg
+            args_to_parse.append(arg)
 
-    if output_tree_dir and output_flat_dir:
-        print("Error: Cannot use both 'output-directory-save-directories-tree' and 'output-directory-without-directories-tree'.", file=sys.stderr)
+    parser = argparse.ArgumentParser(description="Convert FLAC files to MP3 recursively using ffmpeg.")
+    parser.add_argument(
+        "search_directory",
+        nargs="?",
+        default=".",
+        help="Directory to scan for FLAC files (default: current directory)"
+    )
+    parser.add_argument(
+        "--output-directory-save-directories-tree",
+        help="Directory to save MP3s preserving the subdirectories structure"
+    )
+    parser.add_argument(
+        "--output-directory-without-directories-tree",
+        help="Directory to save MP3s directly without subdirectories structure"
+    )
+
+    args = parser.parse_args(args_to_parse)
+
+    if not os.path.isdir(args.search_directory):
+        print(f"Error: The directory '{args.search_directory}' does not exist.", file=sys.stderr)
         sys.exit(1)
 
-    if not os.path.isdir(search_directory):
-        print(f"Error: The directory '{search_directory}' does not exist.", file=sys.stderr)
-        sys.exit(1)
-
-    convert_flac_to_mp3(search_directory, output_tree_dir, output_flat_dir)
+    convert_flac_to_mp3(
+        args.search_directory,
+        args.output_directory_save_directories_tree,
+        args.output_directory_without_directories_tree
+    )
