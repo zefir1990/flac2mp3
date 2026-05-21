@@ -33,6 +33,14 @@ You can optionally specify a target directory to scan and export options:
 python flac2mp3.py [search_directory] [options]
 ```
 
+# Real Life Example
+
+Converting all flacs from D:\Downloads to D:\mp3s with 4 parallel threads, saving directories tree:
+
+```powershell
+python .\flac2mp3.py D:\Downloads\ --output-directory-save-directories-tree=D:\mp3s\ --parallel-run=4
+```
+
 ### Options
 
 - `--output-directory-save-directories-tree=<path>` (or without `--` prefix: `output-directory-save-directories-tree=<path>`)
@@ -42,6 +50,10 @@ python flac2mp3.py [search_directory] [options]
 - `--output-directory-without-directories-tree=<path>` (or without `--` prefix: `output-directory-without-directories-tree=<path>`)
   
   Exports all MP3 files directly into `<path>`, flattening the subdirectories.
+
+- `--parallel-run=<number>` (or without `--` prefix: `parallel-run=<number>`)
+  
+  Number of concurrent audio conversions (default: `1`).
 
 ### Examples
 
@@ -67,4 +79,10 @@ python flac2mp3.py C:\Music\FLAC output-directory-without-directories-tree=D:\Mu
 Convert FLAC files and save them to both a structured and a flat directory at the same time:
 ```powershell
 python flac2mp3.py C:\Music\FLAC output-directory-save-directories-tree=D:\Music\MP3 output-directory-without-directories-tree=D:\Music\FlatMP3
+```
+
+#### 5. Concurrent conversions
+Convert FLAC files in parallel using 4 concurrent threads:
+```powershell
+python flac2mp3.py parallel-run=4
 ```
