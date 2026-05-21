@@ -65,6 +65,8 @@ def convert_single_file(index, flac_path, total, search_dir, output_tree_dir, ou
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=True
         )
         for extra_dest in destinations[1:]:
