@@ -10,10 +10,12 @@ def check_ffmpeg():
         print("Please install ffmpeg and ensure it is added to your environment variables.", file=sys.stderr)
         sys.exit(1)
 
-def convert_flac_to_mp3(search_dir):
+def convert_flac_to_mp3(search_dir, output_tree_dir=None):
     check_ffmpeg()
 
     print(f"Scanning for .flac files in: {os.path.abspath(search_dir)}")
+    if output_tree_dir:
+        print(f"Exporting MP3s with directory tree to: {os.path.abspath(output_tree_dir)}")
     flac_files = []
     for root, _, files in os.walk(search_dir):
         for file in files:
@@ -27,10 +29,17 @@ def convert_flac_to_mp3(search_dir):
     print(f"Found {len(flac_files)} .flac file(s). Starting conversion...\n")
 
     for index, flac_path in enumerate(flac_files, start=1):
-        mp3_path = os.path.splitext(flac_path)[0] + ".mp3"
-        
         relative_flac = os.path.relpath(flac_path, search_dir)
-        relative_mp3 = os.path.relpath(mp3_path, search_dir)
+        relative_flac_no_ext = os.path.splitext(relative_flac)[0]
+        
+        if output_tree_dir:
+            mp3_path = os.path.join(output_tree_dir, relative_flac_no_ext + ".mp3")
+            os.makedirs(os.path.dirname(mp3_path), exist_ok=True)
+            relative_mp3 = os.path.relpath(mp3_path, output_tree_dir)
+        else:
+            mp3_path = os.path.splitext(flac_path)[0] + ".mp3"
+            relative_mp3 = os.path.relpath(mp3_path, search_dir)
+            
         print(f"[{index}/{len(flac_files)}] Converting: {relative_flac} -> {relative_mp3}")
 
         command = [
@@ -59,10 +68,19 @@ def convert_flac_to_mp3(search_dir):
     print("\nConversion process completed.")
 
 if __name__ == "__main__":
-    target_directory = sys.argv[1] if len(sys.argv) > 1 else "."
-    
-    if not os.path.isdir(target_directory):
-        print(f"Error: The directory '{target_directory}' does not exist.", file=sys.stderr)
+    search_directory = "."
+    output_tree_dir = None
+
+    for arg in sys.argv[1:]:
+        if arg.startswith("output-directory-save-tree="):
+            output_tree_dir = arg.split("output-directory-save-tree=", 1)[1]
+        elif arg.startswith("--output-directory-save-tree="):
+            output_tree_dir = arg.split("--output-directory-save-tree=", 1)[1]
+        else:
+            search_directory = arg
+
+    if not os.path.isdir(search_directory):
+        print(f"Error: The directory '{search_directory}' does not exist.", file=sys.stderr)
         sys.exit(1)
-        
-    convert_flac_to_mp3(target_directory)
+
+    convert_flac_to_mp3(search_directory, output_tree_dir)
