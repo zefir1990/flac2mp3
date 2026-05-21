@@ -1,5 +1,7 @@
 # flac2mp3
 
+[**🇷🇺 Читать на русском**](README.ru.md)
+
 A clean Python script to recursively convert FLAC files to high-quality MP3 format using `ffmpeg`.
 
 ## Prerequisites
