@@ -58,6 +58,8 @@ def convert_single_file(index, flac_path, total, search_dir, output_tree_dir, ou
         "ffmpeg",
         "-y",
         "-i", flac_path,
+        "-map_metadata", "0",
+        "-id3v2_version", "3",
         "-c:a", "libmp3lame",
         "-q:a", "0",
         primary_dest
