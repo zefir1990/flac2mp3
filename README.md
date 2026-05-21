@@ -20,6 +20,7 @@ A clean Python script to recursively convert FLAC files to high-quality MP3 form
   - **Save Directory Tree**: Re-creates the source directory structure under a target folder.
   - **Flattened**: Exports all converted MP3s directly into a single folder.
   - **Combined**: Allows running both export modes simultaneously, converting once and copying the output file to avoid redundant work.
+- **Skip existing files**: Optionally skip conversion if the output MP3 file already exists, useful for resuming interrupted batch conversions.
 
 ## Usage
 
@@ -57,6 +58,10 @@ python .\flac2mp3.py D:\Downloads\ --output-directory-save-directories-tree=D:\m
   
   Number of concurrent audio conversions (default: `1`).
 
+- `--skip-output-file-if-exists`
+  
+  Skip conversion if the output MP3 file already exists.
+
 ### Examples
 
 #### 1. In-place conversion
@@ -87,4 +92,10 @@ python flac2mp3.py C:\Music\FLAC output-directory-save-directories-tree=D:\Music
 Convert FLAC files in parallel using 4 concurrent threads:
 ```powershell
 python flac2mp3.py parallel-run=4
+```
+
+#### 6. Skip already converted files
+Resume an interrupted conversion, skipping files that were already converted:
+```powershell
+python flac2mp3.py C:\Music\FLAC --output-directory-save-directories-tree=D:\Music\MP3 --skip-output-file-if-exists
 ```

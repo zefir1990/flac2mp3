@@ -19,7 +19,7 @@ def check_ffmpeg():
         print("Please install ffmpeg and ensure it is added to your environment variables.", file=sys.stderr)
         sys.exit(1)
 
-def convert_single_file(index, flac_path, total, search_dir, output_tree_dir, output_flat_dir):
+def convert_single_file(index, flac_path, total, search_dir, output_tree_dir, output_flat_dir, skip_existing=False):
     relative_flac = os.path.relpath(flac_path, search_dir)
     relative_flac_no_ext = os.path.splitext(relative_flac)[0]
     
@@ -43,6 +43,10 @@ def convert_single_file(index, flac_path, total, search_dir, output_tree_dir, ou
             display_paths.append(os.path.relpath(dest, output_flat_dir))
         else:
             display_paths.append(os.path.relpath(dest, search_dir))
+
+    if skip_existing and all(os.path.exists(dest) for dest in destinations):
+        safe_print(f"[{index}/{total}] Skipping (exists): {relative_flac}")
+        return
 
     safe_print(f"[{index}/{total}] Converting: {relative_flac} -> {', '.join(display_paths)}")
 
@@ -77,7 +81,7 @@ def convert_single_file(index, flac_path, total, search_dir, output_tree_dir, ou
     except Exception as e:
         safe_print(f"  [ERROR] Unexpected error occurred: {e}", file=sys.stderr)
 
-def convert_flac_to_mp3(search_dir, output_tree_dir=None, output_flat_dir=None, parallel_run=1):
+def convert_flac_to_mp3(search_dir, output_tree_dir=None, output_flat_dir=None, parallel_run=1, skip_existing=False):
     check_ffmpeg()
 
     print(f"Scanning for .flac files in: {os.path.abspath(search_dir)}")
@@ -106,7 +110,8 @@ def convert_flac_to_mp3(search_dir, output_tree_dir=None, output_flat_dir=None, 
                 len(flac_files),
                 search_dir,
                 output_tree_dir,
-                output_flat_dir
+                output_flat_dir,
+                skip_existing
             )
             for index, flac_path in enumerate(flac_files, start=1)
         ]
@@ -144,6 +149,12 @@ if __name__ == "__main__":
         default=1,
         help="Number of concurrent conversions (default: 1)"
     )
+    parser.add_argument(
+        "--skip-output-file-if-exists",
+        action="store_true",
+        default=False,
+        help="Skip conversion if the output MP3 file already exists"
+    )
 
     args = parser.parse_args(args_to_parse)
 
@@ -155,5 +166,6 @@ if __name__ == "__main__":
         args.search_directory,
         args.output_directory_save_directories_tree,
         args.output_directory_without_directories_tree,
-        args.parallel_run
+        args.parallel_run,
+        args.skip_output_file_if_exists
     )
